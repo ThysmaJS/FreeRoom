@@ -4,6 +4,16 @@ import { sql } from "@/lib/db";
 export const OPENING_HOUR = 8;
 export const CLOSING_HOUR = 19;
 
+export const FLOORS = [
+  { value: 0, label: "RDC" },
+  { value: 1, label: "1er étage" },
+  { value: 2, label: "2e étage" },
+] as const;
+
+export function isValidFloor(floor: number): boolean {
+  return FLOORS.some((f) => f.value === floor);
+}
+
 export type SlotStatus = "free" | "booked" | "own" | "past";
 
 export type RoomWithSlots = {
@@ -93,12 +103,13 @@ export async function getUserBookings(userId: number): Promise<UserBooking[]> {
 
 export async function getRoomsForDate(
   date: string,
-  userId: number
+  userId: number,
+  floor: number
 ): Promise<RoomWithSlots[]> {
   const rooms = await sql<
     { id: number; name: string; capacity: number | null }[]
   >`
-    SELECT id, name, capacity FROM rooms ORDER BY name
+    SELECT id, name, capacity FROM rooms WHERE floor = ${floor} ORDER BY name
   `;
 
   type BookingRow = {

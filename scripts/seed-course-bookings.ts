@@ -40,16 +40,12 @@ const HOUR_WEIGHT: Record<number, number> = {
   18: 0.06, // fully inside the rare 17h15–19h créneau
 };
 
+// Every numbered classroom (RDC/1er/2e) is treated alike via the default
+// below — only the ground-floor amphi stands out as more in demand.
 const ROOM_MULTIPLIER: Record<string, number> = {
-  "Amphi A": 1.05,
-  "Amphi B": 1.0,
-  "Salle 101": 0.9,
-  "Salle 102": 0.9,
-  "Salle 103": 0.85,
-  "Salle TP 1": 0.8,
-  "Salle TP 2": 0.8,
-  "Salle de réunion": 0.35, // meeting room, rarely used for courses
+  Amphi: 1.05,
 };
+const DEFAULT_ROOM_MULTIPLIER = 0.85;
 
 function weekdayMultiplier(date: Date) {
   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
@@ -140,7 +136,8 @@ async function main() {
     const dayMultiplier = weekdayMultiplier(date);
 
     for (const room of rooms) {
-      const roomMultiplier = ROOM_MULTIPLIER[room.name] ?? 0.75;
+      const roomMultiplier =
+        ROOM_MULTIPLIER[room.name] ?? DEFAULT_ROOM_MULTIPLIER;
 
       for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
         const key = `${room.id}|${isoDate}|${hour}`;

@@ -9,8 +9,13 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS rooms (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
-  capacity INTEGER
+  capacity INTEGER,
+  floor SMALLINT NOT NULL DEFAULT 0
 );
+
+-- CREATE TABLE IF NOT EXISTS is a no-op on a table that already exists, so
+-- floor needs its own idempotent migration for pre-existing databases.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS floor SMALLINT NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS bookings (
   id SERIAL PRIMARY KEY,
