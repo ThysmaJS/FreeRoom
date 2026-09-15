@@ -6,10 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
+    "db:seed": "tsx --env-file=.env scripts/seed.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jose": "^5.9.6",
     "next": "16.3.5",
+    "postgres": "^3.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -21,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }
