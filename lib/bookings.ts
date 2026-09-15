@@ -46,6 +46,44 @@ function toISODate(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
+export type UserBooking = {
+  id: number;
+  roomId: number;
+  roomName: string;
+  date: string;
+  startHour: number;
+  endHour: number;
+};
+
+export async function getUserBookings(userId: number): Promise<UserBooking[]> {
+  const rows = await sql<
+    {
+      id: number;
+      room_id: number;
+      room_name: string;
+      date: string;
+      start_hour: number;
+      end_hour: number;
+    }[]
+  >`
+    SELECT b.id, b.room_id, r.name AS room_name,
+           to_char(b.date, 'YYYY-MM-DD') AS date, b.start_hour, b.end_hour
+    FROM bookings b
+    JOIN rooms r ON r.id = b.room_id
+    WHERE b.user_id = ${userId} AND b.date >= CURRENT_DATE
+    ORDER BY b.date ASC, b.start_hour ASC
+  `;
+
+  return rows.map((row) => ({
+    id: row.id,
+    roomId: row.room_id,
+    roomName: row.room_name,
+    date: row.date,
+    startHour: row.start_hour,
+    endHour: row.end_hour,
+  }));
+}
+
 export async function getRoomsForDate(
   date: string,
   userId: number

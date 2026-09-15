@@ -27,14 +27,22 @@ export default async function Home({
     <div className="flex flex-1 flex-col gap-6 px-4 py-8 md:px-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Bonjour {user?.name} 👋</h1>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="shrink-0 rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/reservations"
+            className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
           >
-            Se déconnecter
-          </button>
-        </form>
+            Mes réservations
+          </Link>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
+            >
+              Se déconnecter
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-4">
