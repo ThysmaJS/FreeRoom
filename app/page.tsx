@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getUser } from "@/lib/dal";
-import { logout } from "@/lib/actions/auth";
 import {
   addDays,
   formatDateFr,
@@ -8,6 +8,7 @@ import {
   isValidDate,
   todayISODate,
 } from "@/lib/bookings";
+import AppHeader from "./app-header";
 import DayGrid from "./day-grid";
 import LiveRefresher from "./live-refresher";
 
@@ -23,51 +24,44 @@ export default async function Home({
   const rooms = await getRoomsForDate(date, user!.id);
   const prevDate = addDays(date, -1);
   const nextDate = addDays(date, 1);
+  const isToday = date === todayISODate();
 
   return (
-    <div className="flex flex-1 flex-col gap-6 px-4 py-8 md:px-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Bonjour {user?.name} 👋</h1>
-        <div className="flex shrink-0 items-center gap-2">
+    <div className="flex flex-1 flex-col">
+      <AppHeader userName={user!.name} active="grid" />
+
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
+        <div className="flex items-center justify-between gap-4">
           <Link
-            href="/reservations"
-            className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
+            href={`/?date=${prevDate}`}
+            aria-label="Jour précédent"
+            className="flex size-9 items-center justify-center rounded-full border border-border-strong text-foreground transition-colors hover:bg-surface"
           >
-            Mes réservations
+            <ChevronLeft className="size-4.5" strokeWidth={2.25} aria-hidden />
           </Link>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
-            >
-              Se déconnecter
-            </button>
-          </form>
+
+          <div className="text-center">
+            <p className="text-base font-black capitalize sm:text-lg">
+              {formatDateFr(date)}
+            </p>
+            <p className="text-xs text-muted">
+              {isToday ? "Aujourd'hui" : ""}
+              {isToday && " · "}
+              actualisation automatique
+            </p>
+          </div>
+
+          <Link
+            href={`/?date=${nextDate}`}
+            aria-label="Jour suivant"
+            className="flex size-9 items-center justify-center rounded-full border border-border-strong text-foreground transition-colors hover:bg-surface"
+          >
+            <ChevronRight className="size-4.5" strokeWidth={2.25} aria-hidden />
+          </Link>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          href={`/?date=${prevDate}`}
-          className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
-        >
-          ← Veille
-        </Link>
-        <span className="text-center text-sm font-medium capitalize">
-          {formatDateFr(date)}
-          <span className="ml-1.5 hidden text-xs font-normal text-black/40 sm:inline dark:text-white/40">
-            · actualisation auto
-          </span>
-        </span>
-        <Link
-          href={`/?date=${nextDate}`}
-          className="rounded-md border border-black/10 px-3 py-1.5 text-sm dark:border-white/15"
-        >
-          Lendemain →
-        </Link>
+        <DayGrid rooms={rooms} date={date} isToday={isToday} />
       </div>
-
-      <DayGrid rooms={rooms} date={date} />
       <LiveRefresher />
     </div>
   );

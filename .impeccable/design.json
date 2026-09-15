@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T20:33:03Z",
+  "title": "Design System: FreeRoom",
+  "extensions": {
+    "colorMeta": {
+      "navy": {
+        "role": "primary",
+        "displayName": "ESGI Navy",
+        "canonical": "#001b40",
+        "tonalRamp": ["#000a17", "#00122b", "#001b40", "#062654", "#1c3d6e", "#4a6690", "#8ba3c2", "#dbe4f0"]
+      },
+      "cyan": {
+        "role": "secondary",
+        "displayName": "ESGI Cyan",
+        "canonical": "#00eaff",
+        "tonalRamp": ["#003338", "#005259", "#007a85", "#00a6b8", "#00cfe4", "#00eaff", "#7df3ff", "#cffbff"]
+      },
+      "yellow": {
+        "role": "tertiary",
+        "displayName": "ESGI Yellow (now-marker only)",
+        "canonical": "#ffde00",
+        "tonalRamp": ["#453a00", "#6b5a00", "#948000", "#bfa700", "#e0c700", "#ffde00", "#ffea66", "#fff6c2"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#15181d", "#2c3036", "#484c53", "#666a71", "#8b8f95", "#c4c7cb", "#e6e8ea", "#ffffff"]
+      },
+      "neutral-surface": {
+        "role": "neutral",
+        "displayName": "Cool Surface",
+        "canonical": "#f3f6fb",
+        "tonalRamp": ["#14171c", "#2b2e34", "#474b52", "#656971", "#8a8f97", "#c6cbd3", "#e2e7ee", "#f3f6fb"]
+      },
+      "neutral-surface-strong": {
+        "role": "neutral",
+        "displayName": "Cool Surface Strong",
+        "canonical": "#e8edf6",
+        "tonalRamp": ["#13161b", "#292d33", "#45494f", "#63676e", "#888d95", "#bfc6d1", "#d6dee9", "#e8edf6"]
+      },
+      "danger": {
+        "role": "utility",
+        "displayName": "Danger Red",
+        "canonical": "#d6304a",
+        "tonalRamp": ["#2c0810", "#4c0e1b", "#791828", "#a72135", "#d6304a", "#e56b7e", "#f2a6b1", "#fbd9de"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Auth page titles and error-state heading. Roboto Black stands in for ESGI's unlicensed display face." },
+      "title": { "displayName": "Title", "purpose": "Page-level headings and the selected-date label on the grid header." },
+      "body": { "displayName": "Body", "purpose": "Continuous reading text, meta copy, list body copy, and chip labels for booked/past states." },
+      "label": { "displayName": "Label", "purpose": "Small structural labels, e.g. the grid's 'Salle' column header." }
+    },
+    "shadows": [
+      { "name": "cyan-glow", "value": "0 2px 10px color-mix(in srgb, #00eaff 45%, transparent)", "purpose": "The system's only structural shadow: keyboard focus, active nav pill, any element carrying .glow. Signals live/focused/yours, never decoration." },
+      { "name": "glow-pulse", "value": "animates between 0 2px 10px (35% cyan) and 0 2px 18px (65% cyan), 3.2s ease-in-out infinite", "purpose": "The one authored looping animation, exclusive to a student's own booked slot on the day grid." },
+      { "name": "auth-card-ambient", "value": "0 2px 24px rgba(0,27,64,0.08)", "purpose": "The single ambient lift shadow, reserved for the login/signup card shell." }
+    ],
+    "motion": [
+      { "name": "glow-pulse-duration", "value": "3.2s ease-in-out infinite", "purpose": "Breathing glow on a student's own booking; disabled under prefers-reduced-motion." },
+      { "name": "opacity-hover", "value": "transition-opacity, ~150-200ms default", "purpose": "Standard hover feedback on solid-fill buttons (hover:opacity-90)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width form submit (login, signup, error retry). Navy fill, white text, cyan glow, pill shape.",
+      "html": "<button class=\"ds-btn-primary\">Se connecter</button>",
+      "css": ".ds-btn-primary { background: #001b40; color: #ffffff; font-family: Roboto, system-ui, sans-serif; font-weight: 900; font-size: 0.875rem; padding: 10px 16px; border: none; border-radius: 9999px; box-shadow: 0 2px 10px color-mix(in srgb, #00eaff 45%, transparent); transition: opacity 0.2s; } .ds-btn-primary:hover { opacity: 0.9; } .ds-btn-primary:focus-visible { outline: 2px solid #00eaff; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; }"
+    },
+    {
+      "name": "Grid Free-Cell Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact 'Réserver' pill shown on a free grid cell. No glow at rest; state is the navy fill itself.",
+      "html": "<button class=\"ds-btn-free\">Réserver</button>",
+      "css": ".ds-btn-free { background: #001b40; color: #ffffff; font-family: Roboto, system-ui, sans-serif; font-weight: 900; font-size: 0.75rem; padding: 6px 8px; width: 100%; border: none; border-radius: 9999px; transition: background 0.2s; } .ds-btn-free:hover { background: color-mix(in srgb, #001b40 85%, transparent); } .ds-btn-free:focus-visible { outline: 2px solid #00eaff; outline-offset: 2px; box-shadow: 0 2px 10px color-mix(in srgb, #00eaff 45%, transparent); }"
+    },
+    {
+      "name": "Grid Own-Slot (Cancel) Button",
+      "kind": "button",
+      "refersTo": "button-own-slot",
+      "description": "Cyan 'Annuler' pill on a slot the current student booked. Always carries the breathing glow-pulse.",
+      "html": "<button class=\"ds-btn-own\">Annuler</button>",
+      "css": ".ds-btn-own { background: #00eaff; color: #001b40; font-family: Roboto, system-ui, sans-serif; font-weight: 900; font-size: 0.75rem; padding: 6px 8px; width: 100%; border: none; border-radius: 9999px; animation: ds-glow-pulse 3.2s ease-in-out infinite; transition: opacity 0.2s; } .ds-btn-own:hover { opacity: 0.9; } @keyframes ds-glow-pulse { 0%, 100% { box-shadow: 0 2px 10px color-mix(in srgb, #00eaff 35%, transparent); } 50% { box-shadow: 0 2px 18px color-mix(in srgb, #00eaff 65%, transparent); } } @media (prefers-reduced-motion: reduce) { .ds-btn-own { animation: none; } }"
+    },
+    {
+      "name": "Nav Pill",
+      "kind": "nav",
+      "refersTo": "nav-pill-active",
+      "description": "Header navigation link. Active destination is a solid cyan pill with glow; inactive is transparent with faint hover.",
+      "html": "<a class=\"ds-nav-pill ds-nav-pill--active\" aria-current=\"page\">Salles</a>",
+      "css": ".ds-nav-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px; font-family: Roboto, system-ui, sans-serif; font-weight: 900; font-size: 0.875rem; color: rgba(255,255,255,0.8); transition: background-color 0.2s, color 0.2s; } .ds-nav-pill:hover { background: rgba(255,255,255,0.1); color: #ffffff; } .ds-nav-pill--active { background: #00eaff; color: #001b40; box-shadow: 0 2px 10px color-mix(in srgb, #00eaff 45%, transparent); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Text/email/password field used in login and signup forms. Cyan focus ring matches the system's glow language.",
+      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"jeanne.dupont@esgi.fr\" />",
+      "css": ".ds-input { width: 100%; background: #ffffff; color: #001b40; font-family: Roboto, system-ui, sans-serif; font-size: 0.875rem; padding: 10px 16px; border: 1px solid color-mix(in srgb, #001b40 22%, transparent); border-radius: 16px; } .ds-input::placeholder { color: color-mix(in srgb, #001b40 58%, transparent); } .ds-input:focus-visible { outline: none; border-color: #00eaff; box-shadow: 0 0 0 2px color-mix(in srgb, #00eaff 45%, transparent); }"
+    },
+    {
+      "name": "Day Grid Row (Tiered Recede)",
+      "kind": "custom",
+      "refersTo": "day-grid",
+      "description": "Signature pattern: table rows recede in tone top-to-bottom via a monotonic color-mix blend, reading as tiers banked away from a stage. Never an alternating zebra stripe.",
+      "html": "<table class=\"ds-grid\"><tr class=\"ds-grid-row\" style=\"background-color: color-mix(in srgb, #e8edf6 50%, #ffffff);\"><td class=\"ds-grid-label\">Amphi A <span class=\"ds-grid-cap\">120 pl.</span></td><td class=\"ds-grid-cell\"><button class=\"ds-btn-free\">Réserver</button></td></tr></table>",
+      "css": ".ds-grid { border-collapse: collapse; font-size: 0.875rem; } .ds-grid-row { border-bottom: 1px solid color-mix(in srgb, #001b40 12%, transparent); } .ds-grid-label { font-weight: 900; padding: 10px 16px; white-space: nowrap; } .ds-grid-cap { margin-left: 6px; font-size: 0.75rem; font-weight: 400; color: color-mix(in srgb, #001b40 58%, transparent); } .ds-grid-cell { padding: 6px; text-align: center; }"
+    },
+    {
+      "name": "Card Container",
+      "kind": "card",
+      "refersTo": null,
+      "description": "Shared 20px-radius card shell: the auth form card and the reservations list wrapper.",
+      "html": "<div class=\"ds-card\">Card content</div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid color-mix(in srgb, #001b40 12%, transparent); border-radius: 20px; padding: 24px; box-shadow: 0 2px 24px rgba(0,27,64,0.08); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lecture Hall Board",
+    "overview": "FreeRoom reads as an amphitheater's tiered seating turned into a status board: rows of rooms bank away from the viewer in subtly receding tone, and every cell is either lit or dark rather than checked or unchecked. The world is ESGI's own navy-ground, cyan-signal palette carried at full commitment — navy is the material everything sits on, cyan is reserved for the single moment something is live, and yellow marks exactly one thing: the hour that matters right now. This is a utility opened dozens of times a day between classes, so the system stays flat, fast to scan, and refuses decorative flourish; the only motion in the whole system is a slow breathing glow on a student's own booking. Two Roboto weights carry all type — Regular for reading, Black for everything that needs to be found at a glance (labels, headers, buttons, prices of information). There is no in-between weight and no separate display face: ESGI's proprietary headline face isn't licensed for this build, so Black-weight Roboto stands in for it everywhere a headline would otherwise go.",
+    "keyCharacteristics": [
+      "Navy ground, cyan-as-signal (never decorative), yellow as a single-purpose \"now\" marker",
+      "Two Roboto weights only: Regular (400) and Black (900)",
+      "Pill controls and generous 20px card radii throughout; no sharp corners",
+      "Cyan glow-shadow is the system's only elevation device, tied to live/active/own state",
+      "Monotonic tonal recede on grid rows (tiered), never an alternating zebra stripe"
+    ],
+    "rules": [
+      { "name": "The Lit Cell Rule", "body": "State on the grid is drawn as light or its absence, never as a checkbox or icon: a free slot is a solid navy chip inviting a tap, an own booking is a lit cyan chip with a slow glow, and a booked/past slot is dim, unlit text with no fill at all.", "section": "colors" },
+      { "name": "The One Signal Rule", "body": "Cyan appears only where something is genuinely live: keyboard focus, the active nav destination, or a student's own reservation. If cyan shows up anywhere else in a new screen, that's a violation, not a new use of the brand accent.", "section": "colors" },
+      { "name": "The Single Yellow Rule", "body": "Yellow marks the current hour and nothing else. It is not a secondary accent, a warning color, or a hover-fill (ESGI's own site uses it as a hover-fill swap; this build deliberately narrows that down to the one \"now\" job).", "section": "colors" },
+      { "name": "The Two-Weight Rule", "body": "Only Regular (400) and Black (900) ship. No Medium, Semibold, or Light — an in-between weight was flagged and removed in review specifically because weight-noise undercuts the \"lit or not\" reading of the grid.", "section": "typography" },
+      { "name": "The Glow-Not-Shadow Rule", "body": "Depth is never conveyed with a generic drop shadow tied to hierarchy. The only shadow that means something is the cyan glow, and it always means \"live, focused, or yours.\"", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use pill radius (9999px) for every button and nav control, and 20px card radius for every container.",
+      "Do reserve the cyan glow (0 2px 10px, 45% cyan) for focus, the active nav pill, and a user's own live booking — never as decoration.",
+      "Do set structural/scannable text (labels, room names, buttons, headings) in Roboto Black (900) and everything else in Roboto Regular (400).",
+      "Do recede grid rows with a monotonic tonal blend, tiered top-to-bottom.",
+      "Do confine yellow to the single current-hour marker."
+    ],
+    "donts": [
+      "Don't introduce a third font weight (no Medium/Semibold/Light); the Two-Weight Rule is confirmed by review, not incidental.",
+      "Don't alternate row shading (zebra striping) on the grid or any list — recede monotonically instead.",
+      "Don't use cyan as a general accent color on non-live elements (illustrations, dividers, static badges).",
+      "Don't add ambient drop shadows for hierarchy; the only meaningful shadow is the cyan glow, plus the one ambient lift reserved for the auth card.",
+      "Don't use yellow as a hover-fill or secondary accent, even though ESGI's own site does — this build narrows yellow to the \"now\" marker only."
+    ]
+  }
+}

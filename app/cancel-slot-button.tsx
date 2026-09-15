@@ -29,11 +29,11 @@ export default function CancelSlotButton({ bookingId }: { bookingId: number }) {
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="w-full rounded bg-sky-600/10 px-2 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-600/20 disabled:opacity-50 dark:text-sky-400"
+        className="glow-pulse w-full rounded-full bg-cyan px-2 py-1.5 text-xs font-black text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {isPending ? "..." : "Annuler"}
+        {isPending ? "···" : "Annuler"}
       </button>
-      {error && <p className="max-w-24 text-xs text-red-600">{error}</p>}
+      {error && <p className="max-w-24 text-xs text-danger">{error}</p>}
     </div>
   );
 }

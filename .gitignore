@@ -38,6 +38,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# impeccable skill: keep the design record (design.json, surfaces/), drop
+# the ephemeral review screenshots
+.impeccable/review/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

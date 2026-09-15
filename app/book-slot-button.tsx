@@ -39,11 +39,11 @@ export default function BookSlotButton({
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="w-full rounded bg-emerald-600/10 px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-600/20 disabled:opacity-50 dark:text-emerald-400"
+        className="w-full rounded-full bg-navy px-2 py-1.5 text-xs font-black text-white transition-colors hover:bg-navy/85 disabled:opacity-50 dark:border dark:border-border-strong dark:bg-white/8 dark:text-foreground dark:hover:bg-white/14"
       >
-        {isPending ? "..." : "Réserver"}
+        {isPending ? "···" : "Réserver"}
       </button>
-      {error && <p className="max-w-24 text-xs text-red-600">{error}</p>}
+      {error && <p className="max-w-24 text-xs text-danger">{error}</p>}
     </div>
   );
 }
