@@ -10,7 +10,10 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
-    "db:seed": "tsx --env-file=.env scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "db:test:setup": "tsx --env-file=.env.test scripts/setup-test-db.ts",
+    "pretest": "npm run db:test:setup",
+    "test": "vitest run"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -24,13 +27,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^26.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.1"
   }
 }
