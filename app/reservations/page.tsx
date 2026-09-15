@@ -28,16 +28,16 @@ export default async function ReservationsPage() {
             {bookings.map((booking) => (
               <li
                 key={booking.id}
-                className="flex items-center justify-between gap-4 bg-background px-5 py-4"
+                className="flex flex-col gap-3 bg-background px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
               >
-                <div>
-                  <p className="font-black">{booking.roomName}</p>
+                <div className="min-w-0">
+                  <p className="truncate font-black">{booking.roomName}</p>
                   <p className="text-sm capitalize text-muted">
                     {formatDateFr(booking.date)} · {booking.startHour}h–
                     {booking.endHour}h
                   </p>
                 </div>
-                <div className="w-28 shrink-0">
+                <div className="w-full shrink-0 sm:w-28">
                   <CancelSlotButton bookingId={booking.id} />
                 </div>
               </li>

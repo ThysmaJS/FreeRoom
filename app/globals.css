@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   /* ESGI brand — extracted from esgi.fr's own CSS custom properties. */
   --navy: #001b40;
@@ -48,17 +50,15 @@
   --font-sans: var(--font-roboto);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: var(--navy);
-    --surface: color-mix(in srgb, var(--navy) 100%, white 6%);
-    --surface-strong: color-mix(in srgb, var(--navy) 100%, white 12%);
-    --foreground: #f4f8ff;
-    --muted: color-mix(in srgb, #f4f8ff 62%, transparent);
-    --border: color-mix(in srgb, white 14%, transparent);
-    --border-strong: color-mix(in srgb, white 24%, transparent);
-    --accent-ink: var(--navy-ink);
-  }
+:root[data-theme="dark"] {
+  --background: var(--navy);
+  --surface: color-mix(in srgb, var(--navy) 100%, white 6%);
+  --surface-strong: color-mix(in srgb, var(--navy) 100%, white 12%);
+  --foreground: #f4f8ff;
+  --muted: color-mix(in srgb, #f4f8ff 62%, transparent);
+  --border: color-mix(in srgb, white 14%, transparent);
+  --border-strong: color-mix(in srgb, white 24%, transparent);
+  --accent-ink: var(--navy-ink);
 }
 
 * {

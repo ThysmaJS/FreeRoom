@@ -33,7 +33,11 @@ export default function CancelSlotButton({ bookingId }: { bookingId: number }) {
       >
         {isPending ? "···" : "Annuler"}
       </button>
-      {error && <p className="max-w-24 text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="max-w-48 text-center text-xs text-danger sm:max-w-24">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

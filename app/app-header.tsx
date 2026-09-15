@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarCheck, DoorOpen, LayoutGrid, LogOut } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
+import ThemeToggle from "./theme-toggle";
 
 export default function AppHeader({
   userName,
@@ -44,10 +45,11 @@ export default function AppHeader({
           </Link>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <span className="hidden text-sm text-white/70 md:inline">
             {userName}
           </span>
+          <ThemeToggle />
           <form action={logout}>
             <button
               type="submit"
