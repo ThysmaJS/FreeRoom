@@ -1,0 +1,100 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-freeroom
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        # Mêmes identifiants que .env.test (committé) — pretest (db:test:setup)
+        # et vitest lisent .env.test directement, aucune variable d'env à
+        # dupliquer ici.
+        env:
+          POSTGRES_USER: amphi
+          POSTGRES_PASSWORD: amphi
+          POSTGRES_DB: amphi_libre_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U amphi -d amphi_libre_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        # Le package a été créé par un push manuel (docker push), pas par
+        # une Action — GITHUB_TOKEN n'y a donc pas accès en écriture tant
+        # que le package n'est pas explicitement lié au repo. Un PAT
+        # personnel avec le scope write:packages contourne ce problème
+        # (même patron que le repo onward).
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # Les nodes du cluster sont amd64 — pas besoin de multi-arch ici,
+          # contrairement à un build local sur Mac ARM.
+          platforms: linux/amd64
+          tags: ghcr.io/thysmajs/freeroom:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update image tag in k3s-gitops-lab
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_REPO_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GITOPS_TOKEN}@github.com/ThysmaJS/k3s-gitops-lab.git" gitops
+          cd gitops
+          sed -i -E "s#ghcr\.io/thysmajs/freeroom:[A-Za-z0-9_.-]+#ghcr.io/thysmajs/freeroom:${{ github.sha }}#g" apps/freeroom/deployment.yaml
+          git config user.name "freeroom-ci"
+          git config user.email "ci@freeroom.local"
+          git add apps/freeroom/deployment.yaml
+          git diff --cached --quiet && echo "Aucun changement d'image, rien à committer." && exit 0
+          git commit -m "ci: deploy freeroom ${{ github.sha }}"
+          git push
