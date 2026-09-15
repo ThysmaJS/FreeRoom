@@ -15,6 +15,12 @@ export const verifySession = cache(async () => {
   return { isAuth: true, userId: session.userId };
 });
 
+export const getOptionalUserId = cache(async () => {
+  const cookie = await getSessionCookie();
+  const session = await decrypt(cookie);
+  return session?.userId ?? null;
+});
+
 export const getUser = cache(async () => {
   const session = await verifySession();
 
