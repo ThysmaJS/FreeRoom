@@ -1,4 +1,4 @@
-# Amphi Libre
+# FreeRoom
 
 Voir quelles salles de l'école sont libres à un instant donné et réserver un créneau court, sans tourner dans les couloirs.
 
