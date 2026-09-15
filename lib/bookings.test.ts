@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "@/lib/db";
-import { cancelBooking, createBooking } from "@/lib/bookings";
+import { addDays, cancelBooking, createBooking, todayISODate } from "@/lib/bookings";
 
 let roomId: number;
 let userAId: number;
@@ -79,6 +79,22 @@ describe("createBooking", () => {
     `;
     expect(rows).toHaveLength(1);
     expect(rows[0].user_id).toBe(userAId);
+  });
+
+  it("rejects a booking on a date that has already passed", async () => {
+    const yesterday = addDays(todayISODate(), -1);
+
+    const result = await createBooking({
+      roomId,
+      userId: userAId,
+      date: yesterday,
+      startHour: 9,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("past");
+    }
   });
 
   it("allows the same user to book different slots on the same day", async () => {

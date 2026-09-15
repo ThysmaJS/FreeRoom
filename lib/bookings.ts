@@ -4,7 +4,7 @@ import { sql } from "@/lib/db";
 export const OPENING_HOUR = 8;
 export const CLOSING_HOUR = 19;
 
-export type SlotStatus = "free" | "booked" | "own";
+export type SlotStatus = "free" | "booked" | "own" | "past";
 
 export type RoomWithSlots = {
   id: number;
@@ -12,6 +12,13 @@ export type RoomWithSlots = {
   capacity: number | null;
   slots: { hour: number; status: SlotStatus; bookingId: number | null }[];
 };
+
+function isPastSlot(date: string, hour: number, now = new Date()) {
+  const today = toISODate(now);
+  if (date < today) return true;
+  if (date > today) return false;
+  return hour < now.getHours();
+}
 
 export function isValidDate(date: string) {
   return (
@@ -117,13 +124,16 @@ export async function getRoomsForDate(
     const slots = [];
     for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
       const booking = roomBookings.find((b) => b.start_hour === hour);
-      slots.push({
-        hour,
-        status: (!booking
+      const status: SlotStatus = isPastSlot(date, hour)
+        ? "past"
+        : !booking
           ? "free"
           : booking.user_id === userId
             ? "own"
-            : "booked") as SlotStatus,
+            : "booked";
+      slots.push({
+        hour,
+        status,
         bookingId: booking?.id ?? null,
       });
     }
@@ -133,7 +143,7 @@ export async function getRoomsForDate(
 
 type CreateBookingResult =
   | { ok: true; id: number }
-  | { ok: false; reason: "conflict" | "invalid" };
+  | { ok: false; reason: "conflict" | "invalid" | "past" };
 
 export async function createBooking({
   roomId,
@@ -154,6 +164,10 @@ export async function createBooking({
     startHour >= CLOSING_HOUR
   ) {
     return { ok: false, reason: "invalid" };
+  }
+
+  if (isPastSlot(date, startHour)) {
+    return { ok: false, reason: "past" };
   }
 
   try {

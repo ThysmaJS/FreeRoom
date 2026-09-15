@@ -9,6 +9,7 @@ import {
   todayISODate,
 } from "@/lib/bookings";
 import DayGrid from "./day-grid";
+import LiveRefresher from "./live-refresher";
 
 export default async function Home({
   searchParams,
@@ -54,6 +55,9 @@ export default async function Home({
         </Link>
         <span className="text-center text-sm font-medium capitalize">
           {formatDateFr(date)}
+          <span className="ml-1.5 hidden text-xs font-normal text-black/40 sm:inline dark:text-white/40">
+            · actualisation auto
+          </span>
         </span>
         <Link
           href={`/?date=${nextDate}`}
@@ -64,6 +68,7 @@ export default async function Home({
       </div>
 
       <DayGrid rooms={rooms} date={date} />
+      <LiveRefresher />
     </div>
   );
 }

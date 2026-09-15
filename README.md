@@ -2,14 +2,14 @@
 
 Voir quelles salles de l'école sont libres à un instant donné et réserver un créneau court, sans tourner dans les couloirs.
 
-Projet étudiant (ESGI, Tech Venture Sprint). Périmètre volontairement minimal : une seule fonctionnalité de bout en bout — connexion, liste des salles avec créneaux libres/occupés du jour, réservation, annulation.
+Projet étudiant (ESGI, Tech Venture Sprint). Périmètre volontairement minimal : une seule fonctionnalité de bout en bout — connexion, liste des salles avec créneaux libres/occupés du jour (mise à jour automatique toutes les 8s, créneaux passés non réservables), réservation, annulation.
 
 ## Stack
 
 - **Next.js 16** (App Router), TypeScript, React 19
 - **PostgreSQL** (choisi pour permettre une sauvegarde/restauration simple avec `pg_dump`/`pg_restore`, voir plus bas)
 - **postgres.js**, SQL brut, pas d'ORM
-- Auth maison : session cookie signée (JWT via `jose`), mots de passe hashés avec `bcryptjs`
+- Auth maison : session cookie signée (JWT via `jose`), mots de passe hashés avec `bcryptjs`, rate limiting (5 tentatives / 15 min par IP) sur `/login` et `/signup`
 - **Vitest** pour les tests
 - Tailwind CSS v4 pour le style (responsive)
 

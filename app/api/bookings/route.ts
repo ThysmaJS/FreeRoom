@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    if (result.reason === "past") {
+      return NextResponse.json(
+        { error: "Ce créneau est déjà passé." },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 

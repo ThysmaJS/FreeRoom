@@ -68,6 +68,11 @@ export default function DayGrid({
                       Occupé
                     </span>
                   )}
+                  {slot.status === "past" && (
+                    <span className="inline-block w-full rounded px-2 py-1.5 text-xs text-black/25 dark:text-white/25">
+                      Passé
+                    </span>
+                  )}
                 </td>
               ))}
             </tr>
