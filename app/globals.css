@@ -61,8 +61,13 @@
   --accent-ink: var(--navy-ink);
 }
 
-* {
-  border-color: var(--border);
+/* @layer base (not left unlayered) so a utility like border-danger can
+   still override this default — unlayered CSS always beats @layer
+   utilities in the cascade regardless of source order or specificity. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 body {

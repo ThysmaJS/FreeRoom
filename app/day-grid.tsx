@@ -1,4 +1,4 @@
-import type { RoomWithSlots } from "@/lib/bookings";
+import { currentHourInParis, type RoomWithSlots } from "@/lib/bookings";
 import BookSlotButton from "./book-slot-button";
 import CancelSlotButton from "./cancel-slot-button";
 
@@ -14,7 +14,7 @@ export default function DayGrid({
   isAdmin: boolean;
 }) {
   const hours = rooms[0]?.slots.map((s) => s.hour) ?? [];
-  const currentHour = isToday ? new Date().getHours() : null;
+  const currentHour = isToday ? currentHourInParis() : null;
 
   if (rooms.length === 0) {
     return (

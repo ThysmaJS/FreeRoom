@@ -23,43 +23,79 @@ export type RoomWithSlots = {
   slots: { hour: number; status: SlotStatus; bookingId: number | null }[];
 };
 
+// The whole app's notion of "today"/"the current hour" is Europe/Paris,
+// regardless of the server's own system timezone — a k3s node has no
+// reason to run on French time, and every "now"-derived value here would
+// silently drift off by whatever that offset is otherwise.
+const TIME_ZONE = "Europe/Paris";
+
+function parisNowParts(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+
+  const get = (type: string) => parts.find((p) => p.type === type)!.value;
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    // hour12:false can format midnight as "24" instead of "00" depending
+    // on the runtime's ICU data.
+    hour: Number(get("hour")) % 24,
+  };
+}
+
 function isPastSlot(date: string, hour: number, now = new Date()) {
-  const today = toISODate(now);
+  const { date: today, hour: currentHour } = parisNowParts(now);
   if (date < today) return true;
   if (date > today) return false;
-  return hour < now.getHours();
+  return hour < currentHour;
 }
 
 export function isValidDate(date: string) {
   return (
     /^\d{4}-\d{2}-\d{2}$/.test(date) &&
-    !Number.isNaN(new Date(`${date}T00:00:00`).getTime())
+    !Number.isNaN(new Date(`${date}T00:00:00Z`).getTime())
   );
 }
 
 export function todayISODate() {
-  return toISODate(new Date());
+  return parisNowParts(new Date()).date;
 }
 
+export function currentHourInParis() {
+  return parisNowParts(new Date()).hour;
+}
+
+// Pure calendar-day arithmetic, no "now" involved — anchored at UTC noon
+// so it's immune to the server's timezone too: noon UTC always falls on
+// the same calendar day in Europe/Paris (CET/CEST is at most UTC+2).
 export function addDays(date: string, days: number) {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return toISODate(d);
+  const [year, month, day] = date.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day, 12));
+  anchor.setUTCDate(anchor.getUTCDate() + days);
+  return toISODateUTC(anchor);
 }
 
 export function formatDateFr(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day, 12));
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date(`${date}T00:00:00`));
+    timeZone: TIME_ZONE,
+  }).format(anchor);
 }
 
-function toISODate(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+function toISODateUTC(d: Date) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
