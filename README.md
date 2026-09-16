@@ -193,12 +193,52 @@ Pour arrêter la base : `npm run db:down`.
 npm test
 ```
 
-Migre automatiquement une base Postgres **dédiée aux tests** (`amphi_libre_test`, isolée de la base de dev via `.env.test`), puis lance Vitest. Deux suites couvrent les points critiques :
+Migre automatiquement une base Postgres **dédiée aux tests** (`amphi_libre_test`, isolée de la base de dev via `.env.test`), puis lance Vitest. Deux suites :
 
-- `lib/bookings.test.ts` — logique de double-booking (le 2e essai sur le même créneau échoue proprement sans écraser le premier), logique d'annulation (un utilisateur ne peut pas annuler la réservation d'un autre), et la priorité admin (un admin peut reprendre un créneau déjà pris, atomiquement, mais reste bloqué sur un créneau passé).
-- `tests/api/cancel-authorization.test.ts` — test d'intégration qui démarre un vrai serveur Next et appelle réellement `DELETE /api/bookings/:id` avec le cookie de session d'un autre utilisateur : vérifie une réponse **403**, puis avec le bon utilisateur vérifie **204**.
+- `lib/bookings.test.ts` (9 tests) — logique métier pure : création, double-booking, créneau passé, annulation, priorité admin.
+- `tests/api/integration.test.ts` (11 tests) — démarre un **vrai serveur Next** et appelle réellement les routes en HTTP (pas de mock) : parcours utilisateur complet, chemins d'erreur, contrôle d'accès.
 
 `lib/*.ts` important `"server-only"` (garde anti-import-côté-client de Next.js) fonctionne aussi sous Vitest grâce à un stub (`tests/stubs/server-only.ts`, aliasé dans `vitest.config.ts`) — sans ça, ces modules ne seraient testables qu'à travers une vraie requête HTTP.
+
+### Rapport de tests
+
+Environnements utilisés :
+
+| Environnement | Composants |
+|---|---|
+| **A — Local, suite automatisée** | macOS (Darwin), Node.js v26.8.1, Vitest 5.0.1, Next.js 16.3.5, PostgreSQL 16-alpine (Docker) |
+| **B — CI (GitHub Actions)** | `ubuntu-latest`, Node.js 26, PostgreSQL 16-alpine (service container), déclenché sur chaque push vers `main` |
+| **C — Déploiement conteneurisé complet** | Image `node:26-alpine` (build multi-stage, voir `Dockerfile`), PostgreSQL 16-alpine, Nginx `1.31.5` (reverse proxy), via `docker compose up --build` |
+
+Le détail commande-par-commande de chaque ligne ci-dessous est reproductible tel quel (`npm test` pour A, le fichier `.github/workflows/deploy.yml` pour B, `docker compose up --build -d` pour C).
+
+| Catégorie | Test | Env. | Résultat attendu | Résultat obtenu | Date | Preuve / lien |
+|---|---|---|---|---|---|---|
+| **Parcours** | Réserver un créneau libre → il apparaît dans "Mes réservations" → l'annuler → il disparaît | A | 201 puis présent en HTML, puis 204 puis absent + "Aucune réservation à venir" | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *Parcours — réserver, retrouver dans « Mes réservations », annuler* (642ms) |
+| **Parcours** | Inscription réelle (formulaire `/signup`) → session posée → créneau réservable immédiatement | C | Cookie de session renvoyé, `POST /api/bookings` → 201 | ✅ Conforme | 2026-09-16 | Exécuté manuellement contre la stack Docker Compose : `curl .../signup` (multipart) puis `curl -X POST .../api/bookings` → `{"id":7387}` HTTP 201 |
+| **Parcours** | Créneau réservé par A vu comme "Occupé" par B, "Annuler" pour A ; admin peut le "Forcer" | A | Statuts `own`/`booked` corrects ; override atomique par un admin | ✅ Conforme | 2026-09-16 | `lib/bookings.test.ts` › *lets an admin bump an existing booking and take the slot* (6ms) + captures d'écran navigateur (session précédente) |
+| **Erreur** | `POST /api/bookings` avec un corps invalide (`roomId` non numérique) | A | 400 `invalid_body` | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *refuse un corps de requête invalide (400)* (7ms) |
+| **Erreur** | `POST /api/bookings` sur un créneau déjà passé | A | 400 | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *refuse de réserver un créneau déjà passé (400)* (4ms) |
+| **Erreur** | Double-booking : deux utilisateurs réservent le même créneau | A | 1er → 201, 2e → 409, le 1er n'est pas écrasé | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *refuse un double-booking...* (15ms) + `lib/bookings.test.ts` › *rejects a second booking...* (7ms) |
+| **Accès** | Page protégée (`/`) sans session | A | Redirection 307 → `/login` | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *redirige une page protégée vers /login sans session (307)* (6ms) |
+| **Accès** | `/admin` sans session | A | Redirection 307 → `/login` | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *redirige /admin vers /login sans session (307)* (3ms) |
+| **Accès** | `/admin` avec un compte `student` authentifié | A | Redirection 307 → `/` (pas d'accès, même connecté) | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *redirige /admin vers / pour un compte student...* (150ms) |
+| **Accès** | `/admin` avec un compte `superadmin` | A | 200, dashboard affiché | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *laisse passer /admin pour un compte superadmin (200)* (29ms) |
+| **Accès** | Annuler la réservation d'un autre utilisateur | A | 403 pour l'autre utilisateur, 204 pour le propriétaire, jamais supprimée entre-temps | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *refuse d'annuler la réservation d'un autre utilisateur...* (24ms) |
+| **Accès** | Créer/annuler une réservation sans cookie de session | A | 401 dans les deux cas | ✅ Conforme | 2026-09-16 | `tests/api/integration.test.ts` › *refuse de créer... (401)* (5ms) et *refuse d'annuler sans session (401)* (5ms) |
+| **Déploiement** | Pipeline CI complet (lint, typecheck, tests contre Postgres éphémère, build, push image `ghcr.io`) | B | Tous les jobs verts, image publiée | ✅ Conclusion `success` | 2026-09-16 | Run réel : [github.com/ThysmaJS/FreeRoom/actions/runs/35074675555](https://github.com/ThysmaJS/FreeRoom/actions/runs/35074675555) (commit `7560bf2`) |
+| **Déploiement** | Stack complète (`db` + `app` + `proxy`) démarrée à froid via `docker compose up --build` | C | `app` migre/seed automatiquement au démarrage, `GET /login` via le reverse proxy → 200 | ✅ `HTTP/1.1 200 OK` (nginx/1.31.5) | 2026-09-16 10:46 CEST | Exécuté manuellement : `docker compose up --build -d` puis `curl -D - http://localhost/login` |
+| **Détection d'incident** | Coupure de la base pendant que l'app tourne (`docker compose stop db`), requête utilisateur pendant la panne | C | Pas de crash ni de page blanche : message d'erreur clair + bouton "Réessayer" | ✅ HTTP 500 mais UI dégradée correcte (`app/error.tsx` rendu) | 2026-09-16 10:46 CEST | Capture d'écran + `page.locator("body").innerText()` via Playwright : *"Impossible de contacter le serveur / ... Réessayez dans quelques instants. / Réessayer"* |
+| **Reprise** | Redémarrage de la base (`docker compose start db`), sans redémarrer le conteneur `app` | C | L'app se reconnecte seule, la réservation faite avant la panne est toujours là | ✅ `HTTP/1.1 200 OK` après reprise ; réservation `id=7387` toujours en base | 2026-09-16 10:47 CEST | `curl http://localhost/` → 200, puis `SELECT * FROM bookings WHERE id = 7387` → 1 ligne inchangée |
+
+**Comment reproduire ces preuves soi-même :**
+```bash
+npm test                                  # lignes A (20/20 tests, ~2s)
+docker compose up --build -d              # lignes C (déploiement)
+docker compose stop db && curl -D - http://localhost/     # ligne "Détection d'incident"
+docker compose start db && curl -D - http://localhost/    # ligne "Reprise"
+```
+Le run CI/CD (lignes B) se déclenche automatiquement à chaque push sur `main` — voir l'onglet [Actions](https://github.com/ThysmaJS/FreeRoom/actions) du repo pour l'historique complet.
 
 ## Thème clair / sombre / auto
 
