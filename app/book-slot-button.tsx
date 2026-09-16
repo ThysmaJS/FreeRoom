@@ -52,7 +52,7 @@ export default function BookSlotButton({
         disabled={isPending}
         className={
           forceOverride
-            ? "w-full rounded-full border-2 border-danger bg-transparent px-2 py-1.5 text-xs font-black text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
+            ? "w-full rounded-full border-2 border-danger bg-transparent px-2 py-1.5 text-xs font-black text-danger transition-colors hover:bg-danger hover:text-white disabled:opacity-50"
             : "w-full rounded-full bg-navy px-2 py-1.5 text-xs font-black text-white transition-colors hover:bg-navy/85 disabled:opacity-50 dark:border dark:border-border-strong dark:bg-white/8 dark:text-foreground dark:hover:bg-white/14"
         }
       >

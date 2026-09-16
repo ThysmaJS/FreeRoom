@@ -46,9 +46,7 @@ export default function DayGrid({
             {hours.map((hour) => (
               <th
                 key={hour}
-                className={`relative min-w-20 whitespace-nowrap px-2 py-3 text-center text-sm font-black ${
-                  hour === currentHour ? "text-accent-ink" : ""
-                }`}
+                className="relative min-w-20 whitespace-nowrap px-2 py-3 text-center text-sm font-black"
               >
                 {hour === currentHour && (
                   <span
