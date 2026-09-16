@@ -112,6 +112,37 @@ npm run role:set -- quelquun@esgi.fr superadmin
 
 Ensuite, tout se fait depuis le dashboard `/admin`.
 
+### Comment les accès sont contrôlés
+
+Chaque porte d'accès est vérifiée **côté serveur**, à chaque requête — jamais seulement cachée côté UI. Le schéma suit une requête à travers les quatre points de contrôle réels du code (chacun couvert par un test, voir [Rapport de tests](#rapport-de-tests)) :
+
+```mermaid
+flowchart TD
+    Req(["Requête HTTP"]) --> HasSession{"Session valide ?\nproxy.ts"}
+    HasSession -- non, page protégée --> Login["Redirection\n/login"]
+    HasSession -- oui --> Route{"Quelle route ?"}
+
+    Route -->|"/ , /reservations"| AnyRole["Accessible à tout compte connecté\nstudent, admin, superadmin"]
+
+    Route -->|"/admin"| CheckSuper{"role = superadmin ?\napp/admin/page.tsx"}
+    CheckSuper -- non --> Home["Redirection\n/"]
+    CheckSuper -- oui --> Dashboard["Dashboard : gérer le rôle\nde tous les comptes"]
+
+    Route -->|"POST /api/bookings\nsur un créneau déjà pris"| CheckAdmin{"role = admin ou superadmin ?\nlib/bookings.ts"}
+    CheckAdmin -- non --> Conflict["409 — créneau déjà pris"]
+    CheckAdmin -- oui --> Override["Réservation forcée\ntransaction atomique"]
+
+    Route -->|"DELETE /api/bookings/:id"| CheckOwner{"user_id = booking.user_id ?\nlib/bookings.ts"}
+    CheckOwner -- non --> Forbidden["403 Forbidden"]
+    CheckOwner -- oui --> Cancel["204 — annulée"]
+```
+
+Quatre mécanismes différents, pas un seul garde-fou générique :
+1. **Authentification** (`proxy.ts`) — sans session valide, toute page non publique redirige vers `/login`.
+2. **Rôle sur une page** (`app/admin/page.tsx`) — `/admin` revérifie `role === "superadmin"` côté serveur à chaque chargement, indépendamment de ce que montre la navigation.
+3. **Rôle sur une action** (`lib/bookings.ts`) — forcer un créneau déjà pris n'est possible que si le rôle lu en base au moment de la requête est `admin`/`superadmin`.
+4. **Propriété de la ressource** (`lib/bookings.ts`) — annuler une réservation exige que `user_id` corresponde au propriétaire, peu importe le rôle.
+
 ## Structure du projet
 
 ```
