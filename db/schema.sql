@@ -3,13 +3,29 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  is_admin BOOLEAN NOT NULL DEFAULT false,
+  role TEXT NOT NULL DEFAULT 'student'
+    CHECK (role IN ('student', 'admin', 'superadmin')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- CREATE TABLE IF NOT EXISTS is a no-op on a table that already exists, so
--- is_admin needs its own idempotent migration for pre-existing databases.
-ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+-- role needs its own idempotent migration for pre-existing databases.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student'
+  CHECK (role IN ('student', 'admin', 'superadmin'));
+
+-- One-time backfill from the old is_admin boolean (superseded by role),
+-- guarded so it's a no-op once is_admin is gone — including on a database
+-- that never had it in the first place.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'is_admin'
+  ) THEN
+    UPDATE users SET role = 'admin' WHERE is_admin = true AND role = 'student';
+    ALTER TABLE users DROP COLUMN is_admin;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS rooms (
   id SERIAL PRIMARY KEY,

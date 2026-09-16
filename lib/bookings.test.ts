@@ -29,8 +29,8 @@ beforeAll(async () => {
   userBId = userB.id;
 
   const [admin] = await sql<{ id: number }[]>`
-    INSERT INTO users (name, email, password_hash, is_admin)
-    VALUES ('Unit Admin', 'unit-admin@test.local', 'hash', true)
+    INSERT INTO users (name, email, password_hash, role)
+    VALUES ('Unit Admin', 'unit-admin@test.local', 'hash', 'admin')
     RETURNING id
   `;
   adminId = admin.id;
