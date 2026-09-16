@@ -19,6 +19,7 @@ Projet étudiant (ESGI, Tech Venture Sprint). Une seule fonctionnalité de bout 
 - [Tests](#tests)
 - [Thème clair / sombre / auto](#thème-clair--sombre--auto)
 - [Déploiement](#déploiement)
+- [Infrastructure de production](#infrastructure-de-production)
 - [Sauvegarde et restauration](#sauvegarde-et-restauration)
 - [Scénario d'incident](#scénario-dincident-base-coupée-en-plein-fonctionnement)
 - [Hors périmètre (volontairement)](#hors-périmètre-volontairement)
@@ -264,17 +265,117 @@ Trois services :
 
 ### Déploiement réel (CI/CD + GitOps)
 
-`.github/workflows/deploy.yml` : sur chaque push sur `main`, une CI lance lint + typecheck + tests contre un vrai Postgres éphémère, puis (si tout passe) build et pousse l'image sur `ghcr.io/thysmajs/freeroom`, et met à jour automatiquement le tag d'image dans un repo GitOps séparé (`k3s-gitops-lab`) qu'ArgoCD synchronise en continu vers un cluster k3s.
+`.github/workflows/deploy.yml` : sur chaque push sur `main`, une CI lance lint + typecheck + tests contre un vrai Postgres éphémère, puis (si tout passe) build et pousse l'image sur `ghcr.io/thysmajs/freeroom`, et met à jour automatiquement le tag d'image dans un repo GitOps séparé qu'ArgoCD synchronise en continu vers un cluster k3s.
 
-> Les manifestes Kubernetes, la gestion des secrets (Infisical) et l'exposition publique (Traefik + tunnel Cloudflare) vivent dans ce repo GitOps séparé, pas ici.
+Le détail (secrets, ArgoCD, Kubernetes, schéma complet) est dans la section suivante.
 
-Pour créer/changer un rôle directement sur la base de prod sans passer par le dashboard :
+## Infrastructure de production
 
-```bash
-kubectl exec -it -n <namespace> <pod-freeroom> -- npx tsx scripts/set-role.ts <email> <role>
+La prod tourne sur un cluster **k3s** auto-hébergé, piloté entièrement en **GitOps** : ce repo (FreeRoom) ne contient que le code applicatif et sa CI ; tous les manifestes Kubernetes vivent dans un repo séparé, [`k3s-gitops-lab`](https://github.com/ThysmaJS/k3s-gitops-lab), qu'**ArgoCD** synchronise en continu vers le cluster. Rien n'est jamais appliqué à la main avec `kubectl apply` — un changement d'infra passe par un commit sur `k3s-gitops-lab`, jamais par une modification directe du cluster (d'ailleurs, si quelqu'un modifiait quelque chose à la main sur le cluster, ArgoCD l'écraserait automatiquement pour revenir à l'état déclaré dans Git — c'est le `selfHeal`).
+
+### Schéma
+
+```mermaid
+flowchart LR
+    Dev(["git push main"]) --> Repo["Repo FreeRoom\n(GitHub)"]
+
+    subgraph CIPIPE["CI/CD — .github/workflows/deploy.yml"]
+        CI["lint · typecheck · tests\n(Postgres éphémère)"]
+        Build["build + push image"]
+        Bump["clone k3s-gitops-lab,\nmet à jour le tag d'image, push"]
+        CI --> Build --> Bump
+    end
+    Repo --> CI
+
+    Build -.-> GHCR[("GHCR\nghcr.io/thysmajs/freeroom")]
+    Bump --> GitOps["Repo k3s-gitops-lab\n(manifestes Kubernetes)"]
+
+    GitOps -->|"détecte le changement"| ArgoCD["ArgoCD\nsync auto + selfHeal"]
+
+    subgraph K3S["Cluster k3s"]
+        ArgoCD -->|"applique"| NS
+
+        subgraph NS["namespace: freeroom"]
+            App["Deployment\nfreeroom"]
+            Svc["Service\nfreeroom :80"]
+            PG["Deployment\npostgres:16-alpine"]
+            PGSvc["Service\npostgres :5432"]
+            PVC[("PVC\nfreeroom-postgres-data")]
+            Sec["Secret\nfreeroom-secrets"]
+
+            App --> Svc
+            PG --> PGSvc
+            PG --> PVC
+            Sec -.->|"env vars"| App
+            Sec -.->|"env vars"| PG
+            App -->|"DATABASE_URL"| PGSvc
+        end
+
+        InfisicalOp["Opérateur Infisical"] -->|"sync 5 min"| Sec
+        Traefik["Ingress\nTraefik"] --> Svc
+    end
+
+    GHCR -.->|"pull image"| App
+    InfisicalVault[("Infisical\ncoffre-fort des secrets")] --> InfisicalOp
+    Traefik --> Tunnel["Tunnel Cloudflare\n(cloudflared)"]
+    Tunnel --> Users(["Étudiants ESGI\nfreeroom.thysmadev.fr"])
 ```
 
-(à lancer directement, sans `npm run` — le conteneur n'a pas de fichier `.env`, les variables sont déjà injectées par le cluster.)
+### Où vit quoi
+
+| Composant | Rôle | Où le trouver |
+|---|---|---|
+| **Repo `FreeRoom`** (celui-ci) | Code applicatif + pipeline CI | `.github/workflows/deploy.yml` |
+| **Repo `k3s-gitops-lab`** | Tous les manifestes Kubernetes du cluster (FreeRoom et les autres apps qui y tournent) | `apps/freeroom/*.yaml` |
+| **GHCR** | Registre d'images Docker | `ghcr.io/thysmajs/freeroom:<sha>` |
+| **ArgoCD** | Applique en continu l'état déclaré dans `k3s-gitops-lab` sur le cluster | `argocd/applications/freeroom-app.yaml` (pointe vers `apps/freeroom`) |
+| **Infisical** | Coffre-fort des secrets (source de vérité des vraies valeurs) | Projet `k3s-gitops-lab`, environnement `prod`, chemin `/freeroom/*` |
+| **Traefik** | Ingress controller (fourni par défaut avec k3s) | `apps/freeroom/ingress.yaml` |
+| **Tunnel Cloudflare** | Expose l'app sur internet sans ouvrir de port/IP publique sur le cluster | Config côté tableau de bord Cloudflare Zero Trust (hors Git) |
+
+### Où sont stockés les secrets
+
+**Jamais en clair dans Git**, ni dans ce repo ni dans `k3s-gitops-lab`. Le repo GitOps ne contient qu'une *référence* — projet, environnement, chemin — jamais une valeur :
+
+```yaml
+# apps/freeroom/infisical-secret.yaml (extrait)
+apiVersion: secrets.infisical.com/v1beta1
+kind: InfisicalStaticSecret
+spec:
+  sources:
+    - projectSlug: k3s-gitops-lab
+      environmentSlug: prod
+      secretPath: /freeroom/freeroom-secrets   # ← juste un chemin, pas une valeur
+  targets:
+    - kind: Secret
+      name: freeroom-secrets
+      creationPolicy: Owner
+```
+
+Un opérateur Infisical, qui tourne en permanence dans le cluster, va chercher les vraies valeurs dans le coffre-fort Infisical (projet `k3s-gitops-lab`, env `prod`) toutes les 5 minutes et les matérialise en un vrai `Secret` Kubernetes (`freeroom-secrets`) dans le namespace `freeroom`. C'est ce Secret que le Deployment `freeroom` référence via `secretKeyRef` pour ses variables d'environnement (`DATABASE_URL`, `SESSION_SECRET`) — jamais de valeur en dur dans le YAML.
+
+Deux secrets pour cette app :
+- **`freeroom-secrets`** — `database-url`, `session-secret`, `postgres-user`, `postgres-password`
+- **`ghcr-pull-secret`** — les identifiants pour que le cluster puisse tirer l'image privée depuis GHCR (`imagePullSecrets` sur le Deployment)
+
+### ArgoCD — pourquoi rien n'est appliqué à la main
+
+Le cluster suit le patron **app-of-apps** : une `Application` racine (`root-app`) surveille le dossier `argocd/applications/` du repo GitOps ; chaque fichier qu'on y ajoute (comme `freeroom-app.yaml`) devient une nouvelle `Application` ArgoCD, qui elle-même surveille un dossier `apps/<nom>` et l'applique au cluster. Avec `syncPolicy.automated: { prune: true, selfHeal: true }` :
+- un commit qui ajoute/modifie une ressource → appliqué automatiquement (pas de bouton à cliquer, pas de `kubectl apply`) ;
+- une ressource retirée du repo → supprimée du cluster (`prune`) ;
+- une modification faite en direct sur le cluster (hors Git) → annulée à la prochaine synchronisation (`selfHeal`) — le cluster ne peut pas dériver silencieusement de ce qui est déclaré dans Git.
+
+Les `sync-wave` (annotation `argocd.argoproj.io/sync-wave`) ordonnent les déploiements quand il y a une dépendance : l'app `freeroom` est en wave `2`, après que le secret Infisical et le registre d'images soient prêts.
+
+### Pipeline complet, du `git push` à la prod
+
+1. Push sur `main` (ce repo).
+2. CI : lint, typecheck, tests contre un vrai Postgres éphémère (service container GitHub Actions).
+3. Si tout passe : build de l'image Docker, push sur `ghcr.io/thysmajs/freeroom:<sha du commit>`.
+4. La CI clone `k3s-gitops-lab`, remplace le tag d'image dans `apps/freeroom/deployment.yaml`, commit et push.
+5. ArgoCD détecte le changement sur `k3s-gitops-lab` et synchronise automatiquement.
+6. Le nouveau pod `freeroom` démarre avec la nouvelle image ; `docker/entrypoint.sh` applique le schéma et re-seed les salles avant de lancer `next start`.
+7. Le trafic entrant (tunnel Cloudflare → Traefik → Service `freeroom`) arrive sur le nouveau pod dès qu'il est prêt.
 
 ## Sauvegarde et restauration
 
