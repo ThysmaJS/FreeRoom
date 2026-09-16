@@ -5,6 +5,7 @@ import { addDays, cancelBooking, createBooking, todayISODate } from "@/lib/booki
 let roomId: number;
 let userAId: number;
 let userBId: number;
+let adminId: number;
 
 beforeAll(async () => {
   const [room] = await sql<{ id: number }[]>`
@@ -26,6 +27,13 @@ beforeAll(async () => {
     RETURNING id
   `;
   userBId = userB.id;
+
+  const [admin] = await sql<{ id: number }[]>`
+    INSERT INTO users (name, email, password_hash, is_admin)
+    VALUES ('Unit Admin', 'unit-admin@test.local', 'hash', true)
+    RETURNING id
+  `;
+  adminId = admin.id;
 });
 
 beforeEach(async () => {
@@ -35,7 +43,7 @@ beforeEach(async () => {
 afterAll(async () => {
   await sql`DELETE FROM bookings WHERE room_id = ${roomId}`;
   await sql`DELETE FROM rooms WHERE id = ${roomId}`;
-  await sql`DELETE FROM users WHERE id IN (${userAId}, ${userBId})`;
+  await sql`DELETE FROM users WHERE id IN (${userAId}, ${userBId}, ${adminId})`;
   await sql.end();
 });
 
@@ -113,6 +121,49 @@ describe("createBooking", () => {
 
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
+  });
+
+  it("lets an admin bump an existing booking and take the slot", async () => {
+    const original = await createBooking({
+      roomId,
+      userId: userAId,
+      date: "2030-01-04",
+      startHour: 9,
+    });
+    expect(original.ok).toBe(true);
+
+    const override = await createBooking({
+      roomId,
+      userId: adminId,
+      date: "2030-01-04",
+      startHour: 9,
+      isAdmin: true,
+    });
+    expect(override.ok).toBe(true);
+
+    const rows = await sql<{ user_id: number }[]>`
+      SELECT user_id FROM bookings
+      WHERE room_id = ${roomId} AND date = '2030-01-04' AND start_hour = 9
+    `;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].user_id).toBe(adminId);
+  });
+
+  it("still rejects a past slot for an admin", async () => {
+    const yesterday = addDays(todayISODate(), -1);
+
+    const result = await createBooking({
+      roomId,
+      userId: adminId,
+      date: yesterday,
+      startHour: 9,
+      isAdmin: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("past");
+    }
   });
 });
 

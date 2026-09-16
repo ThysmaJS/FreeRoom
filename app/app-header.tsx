@@ -6,9 +6,11 @@ import ThemeToggle from "./theme-toggle";
 export default function AppHeader({
   userName,
   active,
+  isAdmin,
 }: {
   userName: string;
   active: "grid" | "reservations";
+  isAdmin: boolean;
 }) {
   return (
     <header className="bg-navy text-white">
@@ -46,8 +48,13 @@ export default function AppHeader({
         </nav>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-          <span className="hidden text-sm text-white/70 md:inline">
+          <span className="hidden items-center gap-1.5 text-sm text-white/70 md:inline-flex">
             {userName}
+            {isAdmin && (
+              <span className="rounded-full border border-white/30 px-2 py-0.5 text-[10px] font-black tracking-wide text-white/80 uppercase">
+                Admin
+              </span>
+            )}
           </span>
           <ThemeToggle />
           <form action={logout}>

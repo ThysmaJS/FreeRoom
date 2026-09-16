@@ -24,9 +24,26 @@ export const getOptionalUserId = cache(async () => {
 export const getUser = cache(async () => {
   const session = await verifySession();
 
-  const rows = await sql<{ id: number; name: string; email: string }[]>`
-    SELECT id, name, email FROM users WHERE id = ${session.userId}
+  const rows = await sql<
+    { id: number; name: string; email: string; is_admin: boolean }[]
+  >`
+    SELECT id, name, email, is_admin FROM users WHERE id = ${session.userId}
   `;
 
-  return rows[0] ?? null;
+  const user = rows[0];
+  if (!user) return null;
+  return { id: user.id, name: user.name, email: user.email, isAdmin: user.is_admin };
+});
+
+export const getOptionalUser = cache(async () => {
+  const userId = await getOptionalUserId();
+  if (!userId) return null;
+
+  const rows = await sql<{ id: number; is_admin: boolean }[]>`
+    SELECT id, is_admin FROM users WHERE id = ${userId}
+  `;
+
+  const user = rows[0];
+  if (!user) return null;
+  return { id: user.id, isAdmin: user.is_admin };
 });

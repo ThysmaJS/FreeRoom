@@ -12,6 +12,7 @@
     "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
     "db:seed:bookings": "tsx --env-file=.env scripts/seed-course-bookings.ts",
+    "admin:promote": "tsx --env-file=.env scripts/promote-admin.ts",
     "db:test:setup": "tsx --env-file=.env.test scripts/setup-test-db.ts",
     "pretest": "npm run db:test:setup",
     "test": "vitest run"

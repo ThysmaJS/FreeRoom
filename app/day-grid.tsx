@@ -6,10 +6,12 @@ export default function DayGrid({
   rooms,
   date,
   isToday,
+  isAdmin,
 }: {
   rooms: RoomWithSlots[];
   date: string;
   isToday: boolean;
+  isAdmin: boolean;
 }) {
   const hours = rooms[0]?.slots.map((s) => s.hour) ?? [];
   const currentHour = isToday ? new Date().getHours() : null;
@@ -96,11 +98,19 @@ export default function DayGrid({
                     {slot.status === "own" && (
                       <CancelSlotButton bookingId={slot.bookingId!} />
                     )}
-                    {slot.status === "booked" && (
-                      <span className="inline-block w-full rounded-full bg-surface-strong px-2 py-1.5 text-xs text-muted">
-                        Occupé
-                      </span>
-                    )}
+                    {slot.status === "booked" &&
+                      (isAdmin ? (
+                        <BookSlotButton
+                          roomId={room.id}
+                          date={date}
+                          startHour={slot.hour}
+                          forceOverride
+                        />
+                      ) : (
+                        <span className="inline-block w-full rounded-full bg-surface-strong px-2 py-1.5 text-xs text-muted">
+                          Occupé
+                        </span>
+                      ))}
                     {slot.status === "past" && (
                       <span className="inline-block w-full px-2 py-1.5 text-xs text-muted/50">
                         Passé

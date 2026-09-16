@@ -10,7 +10,11 @@ export default async function ReservationsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <AppHeader userName={user!.name} active="reservations" />
+      <AppHeader
+        userName={user!.name}
+        active="reservations"
+        isAdmin={user!.isAdmin}
+      />
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
         <h1 className="text-xl font-black">Mes réservations</h1>

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOptionalUserId } from "@/lib/dal";
+import { getOptionalUser } from "@/lib/dal";
 import { createBooking } from "@/lib/bookings";
 
 export async function POST(request: NextRequest) {
-  const userId = await getOptionalUserId();
-  if (!userId) {
+  const user = await getOptionalUser();
+  if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
 
   const result = await createBooking({
     roomId: body.roomId,
-    userId,
+    userId: user.id,
     date: body.date,
     startHour: body.startHour,
+    isAdmin: user.isAdmin,
   });
 
   if (!result.ok) {

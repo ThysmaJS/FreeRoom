@@ -7,16 +7,27 @@ export default function BookSlotButton({
   roomId,
   date,
   startHour,
+  forceOverride = false,
 }: {
   roomId: number;
   date: string;
   startHour: number;
+  forceOverride?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
+    if (
+      forceOverride &&
+      !window.confirm(
+        "Ce créneau est déjà réservé par quelqu'un d'autre. Forcer la réservation à sa place ?"
+      )
+    ) {
+      return;
+    }
+
     setError(null);
     startTransition(async () => {
       const res = await fetch("/api/bookings", {
@@ -39,9 +50,13 @@ export default function BookSlotButton({
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="w-full rounded-full bg-navy px-2 py-1.5 text-xs font-black text-white transition-colors hover:bg-navy/85 disabled:opacity-50 dark:border dark:border-border-strong dark:bg-white/8 dark:text-foreground dark:hover:bg-white/14"
+        className={
+          forceOverride
+            ? "w-full rounded-full border-2 border-danger bg-transparent px-2 py-1.5 text-xs font-black text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
+            : "w-full rounded-full bg-navy px-2 py-1.5 text-xs font-black text-white transition-colors hover:bg-navy/85 disabled:opacity-50 dark:border dark:border-border-strong dark:bg-white/8 dark:text-foreground dark:hover:bg-white/14"
+        }
       >
-        {isPending ? "···" : "Réserver"}
+        {isPending ? "···" : forceOverride ? "Forcer" : "Réserver"}
       </button>
       {error && <p className="max-w-24 text-xs text-danger">{error}</p>}
     </div>

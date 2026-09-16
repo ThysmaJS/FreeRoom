@@ -161,11 +161,13 @@ export async function createBooking({
   userId,
   date,
   startHour,
+  isAdmin = false,
 }: {
   roomId: number;
   userId: number;
   date: string;
   startHour: number;
+  isAdmin?: boolean;
 }): Promise<CreateBookingResult> {
   if (
     !Number.isInteger(roomId) ||
@@ -179,6 +181,24 @@ export async function createBooking({
 
   if (isPastSlot(date, startHour)) {
     return { ok: false, reason: "past" };
+  }
+
+  // Admins take priority over an existing booking — a last-minute course
+  // can bump whoever already holds the slot. Bumping and taking the slot
+  // happen atomically so no request can observe it half-free.
+  if (isAdmin) {
+    const rows = await sql.begin(async (tx) => {
+      await tx`
+        DELETE FROM bookings
+        WHERE room_id = ${roomId} AND date = ${date} AND start_hour = ${startHour}
+      `;
+      return tx<{ id: number }[]>`
+        INSERT INTO bookings (room_id, user_id, date, start_hour, end_hour)
+        VALUES (${roomId}, ${userId}, ${date}, ${startHour}, ${startHour + 1})
+        RETURNING id
+      `;
+    });
+    return { ok: true, id: rows[0].id };
   }
 
   try {

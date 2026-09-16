@@ -103,7 +103,7 @@ Navy is the ground the whole app stands on; cyan is spent sparingly as the one "
 - **Paper White** (`#ffffff`): light-mode app background.
 - **Cool Surface** (`#f3f6fb`): light-mode card/table-header surface, one step off white.
 - **Cool Surface Strong** (`#e8edf6`): light-mode deepest neutral surface (table header, "Occupé" chip fill, most-receded grid row).
-- **Danger Red** (`#d6304a`): the only non-brand color; form and action error text only.
+- **Danger Red** (`#d6304a`): the only non-brand color; form/action error text, and — as an outlined pill, never filled — the admin "Forcer" override button on an already-booked grid cell (the one destructive action in the app).
 
 In dark mode the neutral scale and navy invert: background becomes navy itself, surfaces are navy lightened 6%/12% via `color-mix`, and foreground text goes near-white (`#f4f8ff`). This is a full ground inversion, not a separate dark palette.
 
@@ -159,6 +159,7 @@ Everything rounds generously and consistently: **pill** radius (`9999px`) on eve
 - **Primary (forms, error retry):** navy background, white text, `font-weight: 900`, carries the cyan `.glow` shadow, `hover:opacity-90`, `disabled:opacity-60`. Inverts to cyan-background/navy-text in dark mode.
 - **Grid "Réserver" (free cell):** compact navy pill, `text-xs font-black`, no glow at rest (glow is reserved for focus/live state, not every button).
 - **Grid "Annuler" (own booking):** cyan pill, navy text, carries the looping `glow-pulse` — this is the one button that is always visibly "lit."
+- **Grid "Forcer" (admin override, booked cell):** outlined danger-red pill, transparent fill, `text-xs font-black`, `hover:bg-danger/10` — visually distinct from every other grid action since it takes the slot from another user. Confirmed via a native browser dialog before it fires; admin-only.
 - **Icon-only (logout, date step):** circular, transparent/bordered, `hover:bg-surface` or `hover:bg-white/10` depending on context; no fill at rest.
 
 ### Cards / Containers

@@ -32,7 +32,7 @@ export default async function Home({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AppHeader userName={user!.name} active="grid" />
+      <AppHeader userName={user!.name} active="grid" isAdmin={user!.isAdmin} />
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
         <FloorSelector date={date} floor={floor} />
@@ -66,7 +66,12 @@ export default async function Home({
           </Link>
         </div>
 
-        <DayGrid rooms={rooms} date={date} isToday={isToday} />
+        <DayGrid
+          rooms={rooms}
+          date={date}
+          isToday={isToday}
+          isAdmin={user!.isAdmin}
+        />
       </div>
       <LiveRefresher />
     </div>
