@@ -47,6 +47,7 @@ Projet étudiant (ESGI, Tech Venture Sprint). Une seule fonctionnalité de bout 
 | Style | Tailwind CSS v4, système de design documenté dans `DESIGN.md` |
 | Tests | Vitest (unitaires + intégration HTTP réelle) |
 | Icônes | `lucide-react` |
+| Supervision | OpenTelemetry Metrics → endpoint Prometheus (`instrumentation.ts`) |
 
 Aucun framework d'UI, d'ORM ou de state management externe — le projet reste volontairement petit et lisible de bout en bout.
 
@@ -407,6 +408,25 @@ Les `sync-wave` (annotation `argocd.argoproj.io/sync-wave`) ordonnent les déplo
 5. ArgoCD détecte le changement sur `k3s-gitops-lab` et synchronise automatiquement.
 6. Le nouveau pod `freeroom` démarre avec la nouvelle image ; `docker/entrypoint.sh` applique le schéma et re-seed les salles avant de lancer `next start`.
 7. Le trafic entrant (tunnel Cloudflare → Traefik → Service `freeroom`) arrive sur le nouveau pod dès qu'il est prêt.
+
+### Supervision — métriques OpenTelemetry
+
+`instrumentation.ts` (convention Next.js — exécuté une fois au démarrage du serveur) enregistre un `MeterProvider` OpenTelemetry avec l'exporteur `@opentelemetry/exporter-prometheus`, qui expose directement un endpoint `/metrics` au format Prometheus — sans Collector OTel intermédiaire, Prometheus scrape directement l'app :
+
+- `freeroom_users_total{role}` — nombre de comptes, par rôle
+- `freeroom_bookings_total` — réservations, toutes dates confondues
+- `freeroom_bookings_upcoming_total` — réservations à venir
+- `freeroom_rooms_total` — salles configurées
+
+Chaque valeur est relue en base à chaque scrape (pas un compteur à incrémenter dans le code) ; si la base est injoignable, le point de mesure est simplement ignoré pour ce cycle plutôt que de faire planter l'export (vérifié : `/metrics` reste up pendant une coupure de la base, voir [Scénario d'incident](#scénario-dincident-base-coupée-en-plein-fonctionnement)).
+
+Côté cluster, l'app expose le port `9464` en plus du `80` (`apps/freeroom/service.yaml`), et un `ServiceMonitor` (`apps/freeroom/servicemonitor.yaml`) déclare la cible au Prometheus Operator déjà en place (`infra/monitoring/values.yaml` — kube-prometheus-stack, avec Grafana sur `grafana.thysmadev.fr`).
+
+```bash
+# Vérifier en local
+npm run dev
+curl http://localhost:9464/metrics
+```
 
 ## Sauvegarde et restauration
 
